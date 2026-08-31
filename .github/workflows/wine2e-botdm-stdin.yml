@@ -1,0 +1,45 @@
+name: wine2e-botdm-stdin (single-use A/B proof for #97758 salvage)
+
+on:
+  push:
+    branches: ['wine2e-97758-**']
+
+jobs:
+  ab-proof:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Leg A — repro on origin/main bot_mode_dm.py (symptom MUST fire)
+        shell: bash
+        run: |
+          set -x
+          git checkout origin/main -- tools/bot_mode_dm.py
+          cat > /tmp/runner.sh <<'EOS'
+          exec 0<&-
+          python .wine2e/driver.py expect-fail
+          EOS
+          bash /tmp/runner.sh
+
+      - name: Leg B — confirm with fix (same repro, MUST be clean)
+        shell: bash
+        run: |
+          set -x
+          git checkout HEAD -- tools/bot_mode_dm.py
+          cat > /tmp/runner.sh <<'EOS'
+          exec 0<&-
+          python .wine2e/driver.py expect-pass
+          EOS
+          bash /tmp/runner.sh
+
+      - name: Regression test on native Windows
+        shell: bash
+        run: |
+          pip install pytest
+          python -m pytest tests/tools/test_bot_mode_dm.py -k closes_stdin -o addopts= -q --tb=short
