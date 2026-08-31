@@ -41,5 +41,5 @@ jobs:
       - name: Regression test on native Windows
         shell: bash
         run: |
-          pip install pytest
+          pip install pytest pyyaml
           python -m pytest tests/tools/test_bot_mode_dm.py -k closes_stdin -o addopts= -q --tb=short
